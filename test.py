@@ -201,26 +201,40 @@ def compare_user_coverage(user_id: int):
     개인별 권장 보장금액 vs 실제 보장금액 vs 부족금액 비교
     """
     try:
-        # 1️. 권장 보장금액 계산
+        # 1️⃣ 권장 보장금액 계산
         user_choice, rec_df = calculate_recommendation(user_id)
 
-        # 2️. 실제 보장금액 합계 (subcategories.name별)
+        # 2️⃣ 실제 보장금액 합계 (subcategories.name별)
         actual_series = user_actual_coverage(user_id)
 
-        # 3️. 결과 병합
+        # 3️⃣ 결과 병합
         combined_df = rec_df.copy()
         combined_df["현재보장금액(만원)"] = combined_df.index.map(
             lambda x: actual_series.get(x, 0)
         )
         combined_df["부족금액(만원)"] = (
-            combined_df["현재보장금액(만원)"] - combined_df["권장보장금액(만원)"]
+            combined_df["권장보장금액(만원)"] - combined_df["현재보장금액(만원)"]
         ).round(1)
-        mean_row = combined_df.mean(numeric_only=True).to_frame().T
-        mean_row.index = ["암"]  # 행 이름 지정
-        combined_df = pd.concat([combined_df, mean_row])
 
-        # 4️. 정렬
-        combined_df = combined_df[["종합위험비", "평균치료비(만원)", "권장보장금액(만원)", "현재보장금액(만원)", "부족금액(만원)"]]
+        # 4️⃣ 보장 상태 평가
+        lower_bound = combined_df["권장보장금액(만원)"] * 0.8
+        upper_bound = combined_df["권장보장금액(만원)"] * 1.2
+
+        def assess_status(row):
+            if row["현재보장금액(만원)"] < lower_bound[row.name]:
+                return "부족"
+            elif row["현재보장금액(만원)"] > upper_bound[row.name]:
+                return "여유"
+            else:
+                return "적정"
+
+        combined_df["보장상태"] = combined_df.apply(assess_status, axis=1)
+
+        # 6️⃣ 열 정렬
+        combined_df = combined_df[
+            ["종합위험비", "평균치료비(만원)", "권장보장금액(만원)", "현재보장금액(만원)", "부족금액(만원)", "보장상태"]
+        ]
+
         return combined_df
 
     except Exception as e:
@@ -230,10 +244,10 @@ def compare_user_coverage(user_id: int):
 
 
 # -------------------------------------------------------
-# 5️⃣ 실행 (테스트)
+# 7. 실행 (테스트)
 # -------------------------------------------------------
 if __name__ == "__main__":
-    user_id = 2  # 예시
+    user_id = 4  # 예시
     user_choice, result_df = calculate_recommendation(user_id)
 
     print(user_choice)
