@@ -13,7 +13,7 @@ from db import supabase
 import pandas as pd
 
 # -------------------------------------------------------
-# 1️⃣ 위험비 데이터 정의
+# 1. 데이터 정의
 # -------------------------------------------------------
 cancers = ["간암", "췌장암", "폐암", "위암", "대장암", "유방암", "갑상선암"]
 
@@ -62,7 +62,7 @@ treatment_costs = {
 }
 
 # -------------------------------------------------------
-# 2️⃣ Supabase에서 user 데이터 가져오기
+# 2. user 데이터 가져오기
 # -------------------------------------------------------
 def get_user_data(user_id: int):
     response = supabase.table("users").select(
@@ -76,7 +76,7 @@ def get_user_data(user_id: int):
 
 
 # -------------------------------------------------------
-# 3️⃣ enum → 위험표 key로 매핑
+# 3️. enum → 위험표 key로 매핑
 # -------------------------------------------------------
 mapping = {
     "gender": {"Male": "남", "Female": "여"},
@@ -96,7 +96,7 @@ mapping = {
 
 
 # -------------------------------------------------------
-# 4️⃣ 위험비 계산 함수
+# 4️. 위험비 계산
 # -------------------------------------------------------
 def calculate_recommendation(user_id: int):
     user_data = get_user_data(user_id)
@@ -139,15 +139,102 @@ def calculate_recommendation(user_id: int):
 
     return user_choice, result_df
 
+import pandas as pd
+
+# -------------------------------------------------------
+# 5. 실제 보장금액 계산
+# -------------------------------------------------------
+def user_actual_coverage(user_id: int):
+    try:
+        response = (
+            supabase.table("user_products")
+            .select("""
+                products(
+                    id,
+                    product_name,
+                    coverage(
+                        coverage_amount,
+                        subcategories(
+                            name,
+                            categories(type)
+                        )
+                    )
+                )
+            """)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not response.data:
+            return pd.Series(dtype=float)
+
+        records = []
+        for item in response.data:
+            product = item.get("products", {})
+            for cov in product.get("coverage", []):
+                sub = cov.get("subcategories", {})
+                sub_name = sub.get("name")
+                cov_amount = cov.get("coverage_amount", 0)
+                if sub_name:
+                    records.append({"subcategory_name": sub_name, "coverage_amount": cov_amount})
+
+        if not records:
+            return pd.Series(dtype=float)
+
+        df = pd.DataFrame(records)
+
+        # subcategory별 coverage_amount 합계
+        coverage_sum = df.groupby("subcategory_name")["coverage_amount"].sum()
+
+        return coverage_sum  # pandas.Series 반환
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return pd.Series(dtype=float)
+
+# -------------------------------------------------------
+# 6. 권장 보장금액 vs 실제 보장금액 비교
+# -------------------------------------------------------
+def compare_user_coverage(user_id: int):
+    """
+    개인별 권장 보장금액 vs 실제 보장금액 vs 부족금액 비교
+    """
+    try:
+        # 1️. 권장 보장금액 계산
+        user_choice, rec_df = calculate_recommendation(user_id)
+
+        # 2️. 실제 보장금액 합계 (subcategories.name별)
+        actual_series = user_actual_coverage(user_id)
+
+        # 3️. 결과 병합
+        combined_df = rec_df.copy()
+        combined_df["현재보장금액(만원)"] = combined_df.index.map(
+            lambda x: actual_series.get(x, 0)
+        )
+        combined_df["부족금액(만원)"] = (
+            combined_df["현재보장금액(만원)"] - combined_df["권장보장금액(만원)"]
+        ).round(1)
+        mean_row = combined_df.mean(numeric_only=True).to_frame().T
+        mean_row.index = ["암"]  # 행 이름 지정
+        combined_df = pd.concat([combined_df, mean_row])
+
+        # 4️. 정렬
+        combined_df = combined_df[["종합위험비", "평균치료비(만원)", "권장보장금액(만원)", "현재보장금액(만원)", "부족금액(만원)"]]
+        return combined_df
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return pd.DataFrame()
+
 
 # -------------------------------------------------------
 # 5️⃣ 실행 (테스트)
 # -------------------------------------------------------
 if __name__ == "__main__":
-    user_id = 6  # 예시
+    user_id = 2  # 예시
     user_choice, result_df = calculate_recommendation(user_id)
 
-    print("✅ 사용자 정보:")
     print(user_choice)
-    print("\n🧮 [종합위험비 및 권장보장금액]")
-    print(result_df)
+    print(compare_user_coverage(user_id))
