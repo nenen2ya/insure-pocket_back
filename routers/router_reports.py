@@ -45,12 +45,41 @@ def total_report(user_id: int):
         "user_id": user_id,
         "products": user_products,
         "total_monthly_premium": total_premium,
-        "lack": lack_amount,
-        "plus": plus_amount,
-        "stand": stand_amount
+        "lack": int(lack_amount),
+        "plus": int(plus_amount),
+        "stand": int(stand_amount)
     }
 
     return result
 
 # @router.get("/{user_id}/{category}")
-# def detail_report():
+# def detail_report(user_id: int):
+#     df = compare_user_coverage(user_id)
+#     categories_compare = [
+#         {
+#             "category": idx,  
+#             "recommand": row["권장보장금액(만원)"],
+#             "current": row["현재보장금액(만원)"]
+#         }
+#         for idx, row in df.iterrows()
+#     ]
+
+#     recommend_prod = (
+#         df[df["백분율"] < 0].sort_values(by="백분율").index.tolist()
+#     )
+
+
+#     products_recommendation = (
+#         supabase.table("product")
+#         .select(po)
+#         .eq("id", request.user_id)
+#         .execute()
+#     )
+
+#     result = {
+#         "user_id": user_id,
+#         "categories_compare": categories_compare,
+#         "products_recommendation": products_recommendation
+#     }
+
+#     return result
