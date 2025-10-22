@@ -213,26 +213,27 @@ def compare_user_coverage(user_id: int):
             lambda x: actual_series.get(x, 0)
         )
         combined_df["부족금액(만원)"] = (
-            combined_df["권장보장금액(만원)"] - combined_df["현재보장금액(만원)"]
+            combined_df["현재보장금액(만원)"] - combined_df["권장보장금액(만원)"] 
+        ).round(1)
+        combined_df["백분율"] = (
+            combined_df["부족금액(만원)"] / combined_df["권장보장금액(만원)"] * 100
         ).round(1)
 
         # 4️⃣ 보장 상태 평가
-        lower_bound = combined_df["권장보장금액(만원)"] * 0.8
-        upper_bound = combined_df["권장보장금액(만원)"] * 1.2
-
         def assess_status(row):
-            if row["현재보장금액(만원)"] < lower_bound[row.name]:
+            if row["백분율"] < -20:
                 return "부족"
-            elif row["현재보장금액(만원)"] > upper_bound[row.name]:
+            elif row["백분율"] > 20:
                 return "여유"
             else:
                 return "적정"
 
         combined_df["보장상태"] = combined_df.apply(assess_status, axis=1)
 
+
         # 6️⃣ 열 정렬
         combined_df = combined_df[
-            ["종합위험비", "평균치료비(만원)", "권장보장금액(만원)", "현재보장금액(만원)", "부족금액(만원)", "보장상태"]
+            ["종합위험비", "평균치료비(만원)", "권장보장금액(만원)", "현재보장금액(만원)", "부족금액(만원)", "보장상태", "백분율"]
         ]
 
         return combined_df
