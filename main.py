@@ -7,7 +7,18 @@ from routers import router_products
 from routers import router_reports
 from routers import router_users
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 나중엔 localhost:3000 만 남기면 됨
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app.include_router(router_diagnose.router)
 app.include_router(router_pockets.router)
