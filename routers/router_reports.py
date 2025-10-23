@@ -53,13 +53,14 @@ def total_report(user_id: int):
     return result
 
 @router.get("/{user_id}/{category}")
-def detail_report(user_id: int):
+def detail_report(user_id: int, category: str):
     df = compare_user_coverage(user_id)
 
+    # 🔹 카테고리별 보장금액 비교
     categories_compare = [
         {
             "category": idx,
-            "recommand": row["권장보장금액(만원)"],
+            "recommend": row["권장보장금액(만원)"],
             "current": row["현재보장금액(만원)"]
         }
         for idx, row in df.iterrows()
@@ -70,47 +71,80 @@ def detail_report(user_id: int):
 
     recommend_products = []
     added_product_ids = set()
-    cond = True
- 
-    while cond:
-        for name in subcategory_names:
-            subcat_resp = (
-                supabase.table("subcategories")
-                .select("id")
-                .eq("name", name)
+
+    for name in subcategory_names:
+        subcat_resp = (
+            supabase.table("subcategories")
+            .select("id")
+            .eq("name", name)
+            .execute()
+        )
+        if not subcat_resp.data:
+            continue
+        subcat_id = subcat_resp.data[0]["id"]
+
+        coverage_resp = (
+            supabase.table("coverage")
+            .select("product_id")
+            .eq("subcategory_id", subcat_id)
+            .execute()
+        )
+        if not coverage_resp.data:
+            continue
+
+        for cov in coverage_resp.data:
+            product_id = cov["product_id"]
+
+            if product_id in added_product_ids:
+                continue
+
+            prod_resp = (
+                supabase.table("products")
+                .select("""
+                    *,
+                    companies(company_name, url)
+                """)
+                .eq("id", product_id)
                 .execute()
             )
-            if not subcat_resp.data:
+            if not prod_resp.data:
                 continue
-            subcat_id = subcat_resp.data[0]["id"]
+            product_info = prod_resp.data[0]
 
-            response = (
+            subcats_resp = (
                 supabase.table("coverage")
                 .select("""
-                    product_id,
                     subcategories(name, categories(type))
                 """)
-                .eq("subcategory_id", subcat_id)
+                .eq("product_id", product_id)
                 .execute()
             )
+            subcategory_info = [
+                {
+                    "subcategory_name": s["subcategories"]["name"],
+                    "category_type": s["subcategories"]["categories"]["type"]
+                }
+                for s in subcats_resp.data
+                if s.get("subcategories")
+            ]
 
-            for item in response.data:
-                if len(recommend_products) >= 3:
-                    cond = False
-                    break
-                prod_id = item["product_id"]
-                if prod_id not in added_product_ids:
-                    recommend_products.append({
-                        "subcategory": name,
-                        "product_id": prod_id
-                    })
-                    added_product_ids.add(prod_id)
+            recommend_products.append({
+                "product_info": product_info,
+                "subcategory_info": subcategory_info
+            })
+            added_product_ids.add(product_id)
 
+            if len(recommend_products) >= 3:
+                break
+        if len(recommend_products) >= 3:
+            break
 
-
+    # 6️⃣ 최종 결과
     result = {
         "user_id": user_id,
+        "category": category,
         "categories_compare": categories_compare,
         "products_recommendation": recommend_products
     }
+
     return result
