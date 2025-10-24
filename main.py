@@ -6,6 +6,7 @@ from routers import router_pockets
 from routers import router_products
 from routers import router_reports
 from routers import router_users
+from routers import router_auth
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,6 +26,7 @@ app.include_router(router_pockets.router)
 app.include_router(router_products.router)
 app.include_router(router_reports.router)
 app.include_router(router_users.router)
+app.include_router(router_auth.router)
 
 @app.get("/")
 def root():
