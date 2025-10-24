@@ -1,20 +1,26 @@
 from fastapi import APIRouter
-
 from db import supabase
 
 router = APIRouter(prefix="/products")
 
 @router.get("/{user_id}")
 def get_user_products(user_id: int):
-    # user_products 기준으로, 연결된 products 및 companies 가져오기
     try:
         response = supabase.table("user_products").select("""
             id,
             product_id,
+            users(
+                user_name
+            ),                                                          
             products(
                 id,
                 product_name,
-                companies(company_name)
+                monthly_premium,
+                company_id,
+                companies(
+                    id,
+                    company_name
+                )
             )
         """).eq("user_id", user_id).execute()
 
@@ -22,20 +28,32 @@ def get_user_products(user_id: int):
         print("Supabase API 오류:", e)
         return {"error": str(e)}
 
-    # 데이터 정리
-    user_products = response.data
-    result = [
-        {
-            "product_id": up["products"]["id"],
-            "product_name": up["products"]["product_name"],
-            "company_name": (
-                up["products"]["companies"]["company_name"]
-                if up["products"].get("companies")
-                else None
-            ),
-        }
-        for up in user_products
-        if up.get("products")
-    ]
+    user_products = response.data or []
 
-    return {"user_id": user_id, "products": result}
+    # ✅ user_name은 첫 번째 row에서 가져옴
+    user_name = None
+    if user_products and user_products[0].get("users"):
+        user_name = user_products[0]["users"]["user_name"]
+
+    # ✅ 결과 데이터 정리
+    result = []
+    for up in response.data:
+        product = up.get("products")
+        if not product:
+            continue
+
+        company = product.get("companies", {})
+
+        result.append({
+            "id": up["id"],
+            "company_id": company.get("id"),
+            "company_name": company.get("company_name"),
+            "product_name": product.get("product_name"),
+            "monthly_premium": product.get("monthly_premium"),
+        })
+
+    return {
+        "user_id": user_id,
+        "user_name": user_name,
+        "user_products": result
+    }

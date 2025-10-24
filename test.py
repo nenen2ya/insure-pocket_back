@@ -248,7 +248,7 @@ def compare_user_coverage(user_id: int):
 # 7. 실행 (테스트)
 # -------------------------------------------------------
 if __name__ == "__main__":
-    user_id = 1  # 예시
+    user_id = 6  # 예시
     user_choice, result_df = calculate_recommendation(user_id)
 
     print(user_choice)
