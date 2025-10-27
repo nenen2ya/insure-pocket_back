@@ -36,4 +36,7 @@ app.include_router(router_auth.router)
 def root():
     return {"message": "Supabase API 연결 성공"}
 
+@app.head("/")
+def root_head():
+    return {"message": "OK"}
 
