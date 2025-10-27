@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from db import supabase
-from test import compare_user_coverage
+from compare_coverage import compare_user_coverage
 
 router = APIRouter(prefix="/reports")
 
