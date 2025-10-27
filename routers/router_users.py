@@ -12,7 +12,7 @@ def get_users():
         return response.data
     except Exception as e:
         import traceback
-        traceback.print_exc()  # 콘솔에 에러 전체 출력
+        traceback.print_exc()
         return {"error": str(e)}
 
 
@@ -23,7 +23,7 @@ def read_user(user_id: int):
             supabase.table("users")
             .select("id, nickname, user_name, gender, age, job, drinking, smoking, drive_license")
             .eq("id", user_id)
-            .single()  # 단일 행 반환
+            .single()
             .execute()
         )
 

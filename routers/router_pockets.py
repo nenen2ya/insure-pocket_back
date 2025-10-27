@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from models.pockets import Pocket, PocketCreate
 from fastapi import HTTPException
 
 from db import supabase
@@ -41,13 +40,12 @@ def get_user_pockets(user_id: int):
         return response.data
     except Exception as e:
         import traceback
-        traceback.print_exc()  # 콘솔에 에러 전체 출력
+        traceback.print_exc()
         return {"error": str(e)}
     
 @router.post("/{user_id}/{product_id}")
 def post_user_pockets(user_id: int, product_id: int):
     try:
-        # 동일한 user_id + product_id 조합이 이미 존재하는지 확인
         existing = (
             supabase.table("pockets")
             .select("id")
@@ -58,8 +56,6 @@ def post_user_pockets(user_id: int, product_id: int):
 
         if existing.data:
             raise HTTPException(status_code=400, detail="이미 찜한 상품입니다.")
-
-        # 새로운 찜 데이터 삽입
         response = (
             supabase.table("pockets")
             .insert({"user_id": user_id, "product_id": product_id})

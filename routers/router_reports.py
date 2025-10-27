@@ -55,8 +55,6 @@ def total_report(user_id: int):
 @router.get("/{user_id}/{category}")
 def detail_report(user_id: int, category: str):
     df = compare_user_coverage(user_id)
-
-    # 🔹 카테고리별 보장금액 비교
     categories_compare = [
         {
             "category": idx,
@@ -138,8 +136,6 @@ def detail_report(user_id: int, category: str):
                 break
         if len(recommend_products) >= 3:
             break
-
-    # 6️⃣ 최종 결과
     result = {
         "user_id": user_id,
         "category": category,

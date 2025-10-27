@@ -29,13 +29,10 @@ def get_user_products(user_id: int):
         return {"error": str(e)}
 
     user_products = response.data or []
-
-    # ✅ user_name은 첫 번째 row에서 가져옴
     user_name = None
     if user_products and user_products[0].get("users"):
         user_name = user_products[0]["users"]["user_name"]
 
-    # ✅ 결과 데이터 정리
     result = []
     for up in response.data:
         product = up.get("products")

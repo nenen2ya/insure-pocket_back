@@ -1,9 +1,7 @@
-# 
-# =============================================
+## =============================================
 #  INSURE POCKET : 개인화 권장 보장금액 계산기
 # =============================================
-# 기능 요약:
-# - Supabase의 users 테이블에서 사용자 정보 불러옴
+# - 테이블에서 사용자 정보 불러옴
 # - 위험도 데이터(risk_df) 기반으로 종합위험비 계산
 # - 평균 치료비와 곱해서 권장 보장금액 산출
 # - 결과를 pandas DataFrame으로 출력
@@ -70,7 +68,7 @@ def get_user_data(user_id: int):
     ).eq("id", user_id).execute()
 
     if not response.data:
-        raise ValueError(f"❌ User ID {user_id} not found")
+        raise ValueError(f"User ID {user_id} not found")
 
     return response.data[0]
 
@@ -112,7 +110,6 @@ def calculate_recommendation(user_id: int):
     else:
         age_group = "65이상"
 
-    # 사용자 선택값 매핑
     user_choice = {
         "연령": age_group,
         "성별": mapping["gender"][user_data["gender"]],
@@ -122,15 +119,12 @@ def calculate_recommendation(user_id: int):
         "운전": mapping["drive_license"][user_data["drive_license"]],
     }
 
-    # 종합위험비 계산
     total_risk = pd.Series(0, index=cancers)
     for category, choice in user_choice.items():
         total_risk += risk_df[category].loc[choice]
 
-    # 권장 보장금액 계산
     recommend_amount = total_risk * pd.Series(treatment_costs)
 
-    # 결과 DataFrame 구성
     result_df = pd.DataFrame({
         "종합위험비": total_risk.round(3),
         "평균치료비(만원)": pd.Series(treatment_costs),
@@ -182,11 +176,8 @@ def user_actual_coverage(user_id: int):
             return pd.Series(dtype=float)
 
         df = pd.DataFrame(records)
-
-        # subcategory별 coverage_amount 합계
         coverage_sum = df.groupby("subcategory_name")["coverage_amount"].sum()
-
-        return coverage_sum  # pandas.Series 반환
+        return coverage_sum 
 
     except Exception as e:
         import traceback
@@ -201,13 +192,8 @@ def compare_user_coverage(user_id: int):
     개인별 권장 보장금액 vs 실제 보장금액 vs 부족금액 비교
     """
     try:
-        # 1️⃣ 권장 보장금액 계산
-        user_choice, rec_df = calculate_recommendation(user_id)
-
-        # 2️⃣ 실제 보장금액 합계 (subcategories.name별)
+        rec_df = calculate_recommendation(user_id)
         actual_series = user_actual_coverage(user_id)
-
-        # 3️⃣ 결과 병합
         combined_df = rec_df.copy()
         combined_df["현재보장금액(만원)"] = combined_df.index.map(
             lambda x: actual_series.get(x, 0)
@@ -219,7 +205,6 @@ def compare_user_coverage(user_id: int):
             combined_df["부족금액(만원)"] / combined_df["권장보장금액(만원)"] * 100
         ).round(1)
 
-        # 4️⃣ 보장 상태 평가
         def assess_status(row):
             if row["백분율"] < -20:
                 return "부족"
@@ -227,15 +212,11 @@ def compare_user_coverage(user_id: int):
                 return "여유"
             else:
                 return "적정"
-
+            
         combined_df["보장상태"] = combined_df.apply(assess_status, axis=1)
-
-
-        # 6️⃣ 열 정렬
         combined_df = combined_df[
             ["종합위험비", "평균치료비(만원)", "권장보장금액(만원)", "현재보장금액(만원)", "부족금액(만원)", "보장상태", "백분율"]
         ]
-
         return combined_df
 
     except Exception as e:
@@ -248,7 +229,7 @@ def compare_user_coverage(user_id: int):
 # 7. 실행 (테스트)
 # -------------------------------------------------------
 if __name__ == "__main__":
-    user_id = 6  # 예시
+    user_id = 4
     user_choice, result_df = calculate_recommendation(user_id)
 
     print(user_choice)

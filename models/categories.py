@@ -22,7 +22,7 @@ class CategoryType(str, Enum):
 # 카테고리 생성용
 # =========================
 class CategoryCreate(BaseModel):
-    type: str  # DB에 ENUM 존재하면 str로도 충분함
+    type: str
 
     class Config:
         orm_mode = True

@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-from db import supabase  # ← db.py에서 가져옴
-
 from routers import router_diagnose
 from routers import router_pockets
 from routers import router_products
@@ -12,9 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+origins = [
+    "https://insure-pocket-theta.vercel.app",
+    "https://insure-pocket-back-1.onrender.com",
+    "http://localhost:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 나중엔 localhost:3000 만 남기면 됨
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
