@@ -225,9 +225,22 @@ def compare_user_coverage(user_id: int):
 # -------------------------------------------------------
 # 7. 실행 (테스트)
 # -------------------------------------------------------
+
+
+def pretty_print(df: pd.DataFrame):
+    # 한글 너비를 2칸으로 계산하도록
+    pd.set_option("display.unicode.east_asian_width", True)
+    pd.set_option("display.unicode.ambiguous_as_wide", True)
+
+    # 인덱스 이름 붙여서 표 헤더 정렬
+    if df.index.name is None:
+        df.index.name = "보장영역"
+
+    print(df.to_string())  # index 포함 출력
+
 if __name__ == "__main__":
-    user_id = 4  # 예시
+    user_id = 2  # 예시
     user_choice, result_df = calculate_recommendation(user_id)
 
-    print(user_choice)
-    print(compare_user_coverage(user_id))
+    result = compare_user_coverage(user_id)
+    pretty_print(result)

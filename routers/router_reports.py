@@ -59,7 +59,8 @@ def detail_report(user_id: int, category: str):
         {
             "category": idx,
             "recommend": row["권장보장금액(만원)"],
-            "current": row["현재보장금액(만원)"]
+            "current": row["현재보장금액(만원)"],
+            "state" : row["보장상태"],
         }
         for idx, row in df.iterrows()
     ]
