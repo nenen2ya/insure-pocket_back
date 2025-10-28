@@ -58,7 +58,7 @@ def post_user_pockets(user_id: int, product_id: int):
             raise HTTPException(status_code=400, detail="이미 찜한 상품입니다.")
         response = (
             supabase.table("pockets")
-            .insert({"user_id": user_id, "product_id": product_id})
+            .insert({"user_id": int(user_id), "product_id": int(product_id)})
             .execute()
         )
 
